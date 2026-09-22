@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Aircraft Checklist</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#141414">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aircraft Checklist">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FFFFFF;
+    --paper-2: #FFFFFF;
+    --side-bg: #F4F4F2;
+    --ink: #141414;
+    --ink-dim: #6B6B6B;
+    --header-bg: #141414;
+    --header-fg: #FFFFFF;
+    --accent: #141414;
+    --accent-fg: #FFFFFF;
+    --ok: #141414;
+    --ok-fg: #FFFFFF;
+    --danger: #B3261E;
+    --danger-fg: #FFFFFF;
+    --line: #141414;
+    --line-soft: #C6C6C6;
+    --shadow: 0 1px 0 rgba(0,0,0,0.1);
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --paper: #101010;
+      --paper-2: #101010;
+      --side-bg: #171717;
+      --ink: #F2F2F0;
+      --ink-dim: #9B9B9B;
+      --header-bg: #F2F2F0;
+      --header-fg: #101010;
+      --accent: #F2F2F0;
+      --accent-fg: #101010;
+      --ok: #F2F2F0;
+      --ok-fg: #101010;
+      --danger: #E5695F;
+      --danger-fg: #101010;
+      --line: #F2F2F0;
+      --line-soft: #3C3C3C;
+      --shadow: 0 1px 0 rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #101010;
+    --paper-2: #101010;
+    --side-bg: #171717;
+    --ink: #F2F2F0;
+    --ink-dim: #9B9B9B;
+    --header-bg: #F2F2F0;
+    --header-fg: #101010;
+    --accent: #F2F2F0;
+    --accent-fg: #101010;
+    --ok: #F2F2F0;
+    --ok-fg: #101010;
+    --danger: #E5695F;
+    --danger-fg: #101010;
+    --line: #F2F2F0;
+    --line-soft: #3C3C3C;
+    --shadow: 0 1px 0 rgba(0,0,0,0.5);
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  * { -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 15px;
+    line-height: 1.4;
+    overflow: hidden;
+  }
+  h1,h2,h3, .headline {
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    letter-spacing: 0.01em;
+  }
+
+  #app {
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 300px; flex: none;
+    background: var(--side-bg);
+    border-right: 1.5px solid var(--line);
+    display: flex; flex-direction: column;
+    height: 100%;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transition: width 0.18s ease, transform 0.18s ease;
+  }
+  .sidebar-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 12px 10px 16px; flex: none;
+  }
+  .brand {
+    font-family: 'IBM Plex Sans Condensed', sans-serif; font-weight: 700; font-size: 17px;
+    letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .icon-btn {
+    background: none; border: 1.5px solid var(--line); color: var(--ink);
+    width: 32px; height: 32px; border-radius: 3px; flex: none;
+    font-size: 16px; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:active { background: var(--line-soft); }
+  .sidebar-import-wrap { padding: 0 12px 12px; flex: none; }
+
+  .aircraft-nav { flex: 1; overflow-y: auto; padding: 4px 10px 16px; }
+  .nav-empty { padding: 16px 8px; color: var(--ink-dim); font-size: 13px; line-height: 1.6; }
+
+  .nav-group { margin-bottom: 3px; }
+  .nav-aircraft {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: none; border: none; border-radius: 3px;
+    padding: 10px 8px; cursor: pointer; text-align: left;
+    font-family: 'IBM Plex Sans Condensed', sans-serif; font-weight: 600; font-size: 15px; color: var(--ink);
+  }
+  .nav-aircraft:active, .nav-aircraft:hover { background: var(--line-soft); }
+  .nav-aircraft.active-group { background: var(--line-soft); }
+  .nav-aircraft-meta { display: block; font-family: 'IBM Plex Mono', monospace; font-weight: 400; font-size: 10.5px; color: var(--ink-dim); letter-spacing: 0.02em; margin-top: 1px; }
+  .nav-caret { flex: none; font-size: 13px; color: var(--ink-dim); transition: transform 0.15s ease; }
+  .nav-aircraft.expanded .nav-caret { transform: rotate(90deg); }
+
+  .nav-sub { overflow: hidden; padding-left: 10px; border-left: 1.5px solid var(--line-soft); margin: 2px 0 6px 18px; }
+  .nav-checklist {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: none; border: none; border-radius: 3px;
+    padding: 8px 8px; margin: 1px 0; cursor: pointer; text-align: left;
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink-dim);
+  }
+  .nav-checklist:hover, .nav-checklist:active { background: var(--line-soft); color: var(--ink); }
+  .nav-checklist.active { background: var(--ink); color: var(--paper); }
+  .nav-checklist.emergency:not(.active) { color: var(--danger); }
+  .nav-checklist.color-black { color: var(--ink); }
+  .nav-checklist.color-green { color: #16803C; }
+  .nav-checklist.color-blue { color: #1769AA; }
+  .nav-checklist.color-red { color: var(--danger); }
+  .nav-checklist.active { color: var(--paper); }
+  .nav-checklist .nc-count { font-size: 10.5px; opacity: 0.75; flex: none; }
+
+  /* Sidebar collapse (desktop = width, mobile = slide) */
+  .app-shell.collapsed .sidebar { width: 0; min-width: 0; flex-basis: 0; border-right: none; padding-left: 0; padding-right: 0; overflow: hidden; }
+    .app-shell.collapsed .sidebar > * { visibility: hidden; }
+  @media (max-width: 759px) {
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 30;
+      width: 84%; max-width: 320px;
+      box-shadow: 2px 0 18px rgba(0,0,0,0.3);
+      transform: translateX(0);
+    }
+    .app-shell.collapsed .sidebar { width: 84%; max-width: 320px; transform: translateX(-100%); overflow: hidden; }
+  }
+  .sidebar-backdrop { display: none; }
+  @media (max-width: 759px) {
+    .sidebar-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 25;
+    }
+    .app-shell:not(.collapsed) .sidebar-backdrop { display: block; }
+  }
+
+  /* ---------- Main panel ---------- */
+  .main-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100%; }
+  .main-topbar {
+    flex: none; position: relative; z-index: 15;
+    padding-top: env(safe-area-inset-top, 0px);
+    background: var(--header-bg); color: var(--header-fg);
+    box-shadow: var(--shadow);
+  }
+  .main-topbar-inner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; min-height: 30px;
+  }
+  .main-topbar .icon-btn { border-color: var(--header-fg); color: var(--header-fg); }
+  .main-topbar .icon-btn:active { background: rgba(255,255,255,0.15); }
+  .crumbs { flex: 1; min-width: 0; }
+  .crumbs .lvl1 { font-size: 11px; letter-spacing: 0.12em; opacity: 0.7; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crumbs .lvl2 {
+    font-family: 'IBM Plex Sans Condensed', sans-serif; font-weight: 700;
+    font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .topbar-action {
+    background: none; border: none; color: var(--header-fg);
+    font-family: inherit; font-size: 13px; letter-spacing: 0.06em;
+    text-transform: uppercase; cursor: pointer; padding: 8px 4px; flex: none;
+  }
+  .topbar-action:active { opacity: 0.6; }
+
+  .main-content { flex: 1; overflow-y: auto; padding: 16px 18px 56px; }
+  .main-content-inner { max-width: 1100px; margin: 0 auto; }
+
+  /* Empty state */
+  .empty { margin-top: 8vh; text-align: center; color: var(--ink-dim); padding: 0 20px; }
+  .empty .plane { font-size: 34px; margin-bottom: 10px; }
+  .empty h2 { color: var(--ink); font-size: 22px; margin: 0 0 8px; }
+  .empty p { font-size: 14px; line-height: 1.6; margin: 0 auto 18px; max-width: 380px; }
+
+  /* Buttons */
+  .btn {
+    font-family: 'IBM Plex Sans Condensed', sans-serif; font-weight: 600;
+    font-size: 14px; letter-spacing: 0.03em; text-transform: uppercase;
+    border-radius: 3px; padding: 11px 18px; cursor: pointer; border: 1.5px solid var(--ink);
+    background: transparent; color: var(--ink); display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-solid { background: var(--ink); color: var(--paper); }
+  .btn-block { width: 100%; justify-content: center; }
+  .btn[disabled] { opacity: 0.5; pointer-events: none; }
+
+  /* Checklist detail */
+  .detail-meta { font-size: 11.5px; color: var(--ink-dim); margin: 0 0 14px; letter-spacing: 0.02em; }
+  .progress-wrap { position: sticky; top: 0; z-index: 5; background: var(--paper); padding-top: 2px; margin-bottom: 4px; }
+  .progress-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--ink-dim); margin-bottom: 6px; padding: 0 2px;}
+  .progress-track { height: 5px; background: var(--paper-2); border: 1px solid var(--line-soft); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--ok); transition: width 0.2s ease; }
+
+  .cl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+  .cl-section { border: 1.5px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--paper-2); }
+  .cl-section-head {
+    background: var(--header-bg); color: var(--header-fg);
+    font-family: 'IBM Plex Sans Condensed', sans-serif; font-weight: 700; font-size: 14px;
+    letter-spacing: 0.06em; text-transform: uppercase; padding: 9px 12px;
+  }
+  .cl-items { padding: 2px 12px; }
+  .cl-item {
+    display: flex; align-items: baseline; gap: 6px; padding: 10px 0;
+    border-bottom: 1px dotted var(--line-soft); cursor: pointer;
+  }
+  .cl-item:last-child { border-bottom: none; }
+  .cl-check {
+    flex: none; width: 18px; height: 18px; border: 1.5px solid var(--ink); border-radius: 3px;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px; font-size: 12px;
+  }
+  .cl-item.checked .cl-check { background: var(--ok); border-color: var(--ok); color: var(--ok-fg); }
+  .cl-challenge { white-space: nowrap; font-size: 14.5px; }
+  .cl-leader { flex: 1; border-bottom: 1px dotted var(--line-soft); margin-bottom: 4px; min-width: 14px; }
+  .cl-response { font-weight: 700; font-size: 14.5px; white-space: nowrap; text-align: right; }
+  .cl-item.checked .cl-challenge, .cl-item.checked .cl-response { color: var(--ink-dim); text-decoration: line-through; text-decoration-color: var(--ink-dim); }
+  .cl-row-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .cl-row-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: nowrap; }
+
+  .detail-actions { display: flex; gap: 10px; margin-top: 18px; margin-bottom: 24px; }
+
+  /* Import panel */
+  .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50; display: flex; align-items: flex-end; }
+  .sheet { background: var(--paper); width: 100%; border-radius: 10px 10px 0 0; padding: 18px 18px calc(20px + env(safe-area-inset-bottom, 0px)); border-top: 1.5px solid var(--line); max-height: 82vh; overflow-y: auto; max-width: 520px; margin: 0 auto; }
+  .sheet h3 { margin: 0 0 4px; font-size: 20px; }
+  .sheet p { font-size: 13px; color: var(--ink-dim); line-height: 1.6; margin: 0 0 14px; }
+  .sheet .cols { font-size: 11.5px; background: var(--side-bg); border: 1px solid var(--line-soft); border-radius: 4px; padding: 10px; margin-bottom: 16px; line-height: 1.65; }
+  .sheet .cols code { font-weight: 600; }
+  .file-drop {
+    border: 1.5px dashed var(--line-soft); border-radius: 6px; padding: 22px 12px; text-align: center;
+    color: var(--ink-dim); font-size: 13px; margin-bottom: 12px; cursor: pointer; display: block;
+  }
+  .file-drop input { display: none; }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 6px; }
+  .import-status { font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .import-status.err { color: var(--danger); }
+  .import-status.ok { color: var(--ok); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 4px;
+    font-size: 13px; z-index: 60; box-shadow: 0 4px 16px rgba(0,0,0,0.25); max-width: 86%; text-align: center;
+  }
+
+  ::selection { background: var(--accent); color: var(--accent-fg); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-asm.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- state ----------
+  let db = null;              // Anthropic "db" capability (persistent cross-device store)
+  let dbReady = false;
+  let checklists = [];        // full snapshot array of {id, ...data} from the db capability
+  let currentChecklistId = null;
+  let expandedAircraft = null;
+  let sidebarCollapsed = window.matchMedia("(max-width: 759px)").matches;
+  let importOpen = false;
+  let sqlEnginePromise = null;
+  const writeQueues = {};
+
+  const appEl = document.getElementById("app");
+
+  // ---------- helpers ----------
+  function slug(s) {
+    return String(s).toLowerCase().trim()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "x";
+  }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+  function isEmergencyName(name) {
+    const n = String(name || "").toLowerCase();
+    return /(emergency|notfall|abnormal|non.?normal)/.test(n);
+  }
+  function toast(msg) {
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2600);
+  }
+  function itemCount(doc) {
+    let total = 0, checked = 0;
+    const ck = doc.checkedKeys || {};
+    (doc.sections || []).forEach((sec, si) => {
+      (sec.items || []).forEach((it, ii) => {
+        total++;
+        if (ck[si + "-" + ii]) checked++;
+      });
+    });
+    return { total, checked };
+  }
+  function isMobile() { return window.matchMedia("(max-width: 759px)").matches; }
+
+  // ---------- queued writes (db capability) ----------
+  function queueWrite(docId, fn) {
+    const prev = writeQueues[docId] || Promise.resolve();
+    const next = prev.then(fn).catch(err => {
+      console.error("write failed", err);
+      toast("Speichern fehlgeschlagen – bitte erneut versuchen.");
+    });
+    writeQueues[docId] = next;
+    return next;
+  }
+
+  // ---------- storage init ----------
+  // Prefer the app's persistent db capability, but fall back to localStorage
+  // so the imported .db file also works when this HTML is opened standalone.
+  function loadLocalChecklists() {
+    try {
+      const raw = localStorage.getItem("checklisten-data");
+      checklists = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(checklists)) checklists = [];
+    } catch (e) {
+      console.warn("localStorage unavailable", e);
+      checklists = [];
+    }
+    dbReady = true;
+    render();
+  }
+
+  function saveLocalChecklists() {
+    try {
+      localStorage.setItem("checklisten-data", JSON.stringify(checklists));
+      return true;
+    } catch (e) {
+      console.error("local save failed", e);
+      return false;
+    }
+  }
+
+  async function initDb() {
+    try {
+      db = await claude.use("db");
+    } catch (e) { db = null; }
+    if (!db) {
+      loadLocalChecklists();
+      return;
+    }
+    const col = db.collection("checklists");
+    col.limit(1000).onSnapshot(
+      snap => {
+        checklists = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+        if (currentChecklistId && !checklists.find(c => c.id === currentChecklistId)) {
+          currentChecklistId = null;
+        }
+        dbReady = true;
+        render();
+      },
+      err => {
+        console.error("db error", err);
+        db = null;
+        loadLocalChecklists();
+      }
+    );
+  }
+
+  // ---------- sql.js (reads the uploaded .db file, in the browser, once) ----------
+  function loadSqlEngine() {
+    if (!sqlEnginePromise) {
+      sqlEnginePromise = new Promise((resolve, reject) => {
+        if (typeof initSqlJs !== "function") {
+          reject(new Error("SQL-Engine konnte nicht geladen werden"));
+          return;
+        }
+        initSqlJs().then(resolve).catch(reject);
+      });
+    }
+    return sqlEnginePromise;
+  }
+
+  async function readFileAsArrayBuffer(file) {
+    if (!file) throw new Error("Keine Datei ausgewählt");
+    // Modern browsers expose a direct Promise-based API. It is more reliable
+    // in embedded/preview environments than relying only on FileReader events.
+    if (typeof file.arrayBuffer === "function") {
+      return await file.arrayBuffer();
+    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = () => reject(new Error("Datei konnte nicht gelesen werden"));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // Reads aircraft / checklist / section / item tables and groups them into
+  // one document per checklist, matching the app's storage shape.
+  function extractChecklists(sqliteDb) {
+    const sql = `
+      SELECT
+        a.iata_code   AS aircraft_code,
+        a.icao_code   AS aircraft_icao,
+        a.bezeichnung AS aircraft_label,
+        a.hersteller  AS aircraft_maker,
+        c.id          AS checklist_id,
+        c.type        AS checklist_type,
+        c.position   AS checklist_position,
+        c.color      AS checklist_color,
+        s.id          AS section_id,
+        s.name        AS section_name,
+        s.position    AS section_pos,
+        i.id          AS item_id,
+        i.challenge   AS item_challenge,
+        i.response    AS item_response,
+        i.position    AS item_pos
+      FROM checklist c
+      JOIN aircraft a ON a.iata_code = c.aircraft_iata
+      LEFT JOIN section s ON s.checklist_id = c.id
+      LEFT JOIN item i ON i.section_id = s.id
+      ORDER BY a.iata_code, c.id, s.position, i.position
+    `;
+    let res;
+    try {
+      res = sqliteDb.exec(sql);
+    } catch (e) {
+      throw new Error("Erwartete Tabellen (aircraft, checklist, section, item) wurden nicht gefunden.");
+    }
+    if (!res || !res.length) return [];
+    const { columns, values } = res[0];
+    const idx = name => columns.indexOf(name);
+    const cAircraftCode = idx("aircraft_code"), cAircraftIcao = idx("aircraft_icao"),
+      cAircraftLabel = idx("aircraft_label"), cAircraftMaker = idx("aircraft_maker"),
+      cChecklistId = idx("checklist_id"), cChecklistType = idx("checklist_type"),
+      cChecklistPosition = idx("checklist_position"), cChecklistColor = idx("checklist_color"),
+      cSectionId = idx("section_id"), cSectionName = idx("section_name"), cSectionPos = idx("section_pos"),
+      cItemChallenge = idx("item_challenge"), cItemResponse = idx("item_response"), cItemPos = idx("item_pos");
+
+    const byChecklist = {};
+    values.forEach(row => {
+      const checklistId = row[cChecklistId];
+      if (!byChecklist[checklistId]) {
+        byChecklist[checklistId] = {
+          aircraftCode: String(row[cAircraftCode]),
+          aircraftIcao: row[cAircraftIcao] || "",
+          aircraftLabel: row[cAircraftLabel] || String(row[cAircraftCode]),
+          aircraftMaker: row[cAircraftMaker] || "",
+          type: row[cChecklistType] || "Checkliste",
+          position: Number(row[cChecklistPosition]) || 0,
+          color: ["black", "green", "blue", "red"].includes(String(row[cChecklistColor] || "").toLowerCase()) ? String(row[cChecklistColor]).toLowerCase() : "black",
+          sectionOrder: [],
+          sections: {}
+        };
+      }
+      const g = byChecklist[checklistId];
+      const sectionId = row[cSectionId];
+      if (sectionId != null) {
+        if (!g.sections[sectionId]) {
+          g.sections[sectionId] = { title: row[cSectionName] || "Abschnitt", pos: row[cSectionPos] || 0, items: [] };
+          g.sectionOrder.push(sectionId);
+        }
+        const challenge = row[cItemChallenge];
+        if (challenge != null && String(challenge).trim() !== "") {
+          g.sections[sectionId].items.push({
+            challenge: String(challenge),
+            response: row[cItemResponse] != null ? String(row[cItemResponse]) : "",
+            _pos: row[cItemPos] || 0
+          });
+        }
+      }
+    });
+
+    return Object.keys(byChecklist).map(checklistId => {
+      const g = byChecklist[checklistId];
+      const sections = g.sectionOrder
+        .map(sid => g.sections[sid])
+        .sort((a, b) => a.pos - b.pos)
+        .map(sec => ({
+          title: sec.title,
+          items: sec.items.slice().sort((a, b) => a._pos - b._pos)
+            .map(it => ({ challenge: it.challenge, response: it.response }))
+        }));
+      return {
+        id: slug(g.aircraftCode) + "__" + slug(g.type) + "__" + checklistId,
+        aircraftCode: g.aircraftCode,
+        aircraftLabel: g.aircraftLabel,
+        aircraftIcao: g.aircraftIcao,
+        aircraftMaker: g.aircraftMaker,
+        name: g.type,
+        position: g.position,
+        color: g.color,
+        sections
+      };
+    });
+  }
+
+  async function importSqliteFile(file) {
+    setImportStatus("Datei wird gelesen…", null);
+    let buf;
+    try {
+      buf = await readFileAsArrayBuffer(file);
+    } catch (e) {
+      setImportStatus("Datei konnte nicht gelesen werden.", "err");
+      return;
+    }
+    let SQL;
+    try {
+      SQL = await loadSqlEngine();
+    } catch (e) {
+      setImportStatus("SQL-Engine konnte nicht geladen werden. Prüfe deine Verbindung.", "err");
+      return;
+    }
+    let sqliteDb;
+    try {
+      sqliteDb = new SQL.Database(new Uint8Array(buf));
+    } catch (e) {
+      setImportStatus("Das ist keine gültige SQLite-Datenbankdatei.", "err");
+      return;
+    }
+    let groups;
+    try {
+      groups = extractChecklists(sqliteDb);
+    } catch (e) {
+      setImportStatus(e.message || "Datenbank hat nicht das erwartete Schema.", "err");
+      return;
+    } finally {
+      try { sqliteDb.close(); } catch (e) {}
+    }
+    if (groups.length === 0) {
+      setImportStatus("Keine Checklisten in dieser Datenbank gefunden.", "err");
+      return;
+    }
+    setImportStatus("Speichere " + groups.length + " Checkliste(n)…", null);
+    const imported = groups.map(g => ({
+      id: g.id,
+      aircraftCode: g.aircraftCode,
+      aircraftLabel: g.aircraftLabel,
+      aircraftIcao: g.aircraftIcao,
+      aircraftMaker: g.aircraftMaker,
+      position: g.position,
+      color: g.color,
+      name: g.name,
+      sections: g.sections,
+      checkedKeys: {}
+    }));
+
+    if (db) {
+      for (const g of imported) {
+        await db.collection("checklists").doc(g.id).set({
+          aircraftCode: g.aircraftCode,
+          aircraftLabel: g.aircraftLabel,
+          aircraftIcao: g.aircraftIcao,
+          aircraftMaker: g.aircraftMaker,
+          position: g.position,
+          color: g.color,
+          name: g.name,
+          sections: g.sections,
+          checkedKeys: {}
+        });
+      }
+    } else {
+      const byId = Object.fromEntries(checklists.map(c => [c.id, c]));
+      imported.forEach(g => { byId[g.id] = g; });
+      checklists = Object.values(byId);
+      if (!saveLocalChecklists()) {
+        setImportStatus("Datei gelesen, aber lokal konnte nicht gespeichert werden.", "err");
+        return;
+      }
+      render();
+    }
+    setImportStatus(groups.length + " Checkliste(n) importiert.", "ok");
+    toast(groups.length + " Checkliste(n) gespeichert");
+    setTimeout(() => { closeImport(); }, 900);
+  }
+
+  function setImportStatus(msg, kind) {
+    const el = document.getElementById("import-status");
+    if (!el) return;
+    el.textContent = msg;
+    el.className = "import-status" + (kind ? " " + kind : "");
+  }
+
+  function openImport() { importOpen = true; render(); }
+  function closeImport() { importOpen = false; render(); }
+
+  // ---------- checked state ----------
+  function toggleItem(docId, si, ii) {
+    const doc = checklists.find(c => c.id === docId);
+    if (!doc) return;
+    const key = si + "-" + ii;
+    const cur = !!(doc.checkedKeys || {})[key];
+    doc.checkedKeys = Object.assign({}, doc.checkedKeys || {});
+    doc.checkedKeys[key] = !cur;
+    render();
+    queueWrite(docId, () => db.collection("checklists").doc(docId).update({
+      checkedKeys: { [key]: !cur }
+    }));
+  }
+
+  function resetChecklist(docId) {
+    const doc = checklists.find(c => c.id === docId);
+    if (!doc) return;
+    doc.checkedKeys = {};
+    render();
+    queueWrite(docId, () => db.collection("checklists").doc(docId).set({
+      aircraftCode: doc.aircraftCode, aircraftLabel: doc.aircraftLabel,
+      aircraftIcao: doc.aircraftIcao, aircraftMaker: doc.aircraftMaker,
+      position: doc.position || 0,
+      color: doc.color || "black",
+      name: doc.name, sections: doc.sections, checkedKeys: {}
+    }));
+  }
+
+  // ---------- navigation ----------
+  function toggleSidebar() {
+    sidebarCollapsed = !sidebarCollapsed;
+    render();
+  }
+  function toggleAircraft(code) {
+    expandedAircraft = (expandedAircraft === code) ? null : code;
+    render();
+  }
+  function selectChecklist(id) {
+    currentChecklistId = id;
+    const doc = checklists.find(c => c.id === id);
+    if (doc) expandedAircraft = doc.aircraftCode;
+    if (isMobile()) sidebarCollapsed = true;
+    render();
+  }
+
+  // ---------- data ----------
+  function aircraftTypes() {
+    const map = {};
+    checklists.forEach(c => {
+      if (!map[c.aircraftCode]) {
+        map[c.aircraftCode] = { code: c.aircraftCode, label: c.aircraftLabel, icao: c.aircraftIcao, maker: c.aircraftMaker, items: [] };
+      }
+      map[c.aircraftCode].items.push(c);
+    });
+    return Object.values(map).sort((a, b) => a.label.localeCompare(b.label, "de"));
+  }
+
+  // ---------- render ----------
+  function render() {
+    const types = aircraftTypes();
+    const currentDoc = checklists.find(c => c.id === currentChecklistId) || null;
+
+    appEl.className = "app-shell" + (sidebarCollapsed ? " collapsed" : "");
+    appEl.innerHTML = `
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-head">
+          <span class="brand">✈️ Checklisten</span>
+          <button class="icon-btn" id="btn-collapse" aria-label="Menü einklappen">‹</button>
+        </div>
+        <div class="sidebar-import-wrap">
+          <button class="btn btn-block" id="btn-import-side">Datenbank importieren</button>
+        </div>
+        <nav class="aircraft-nav">
+          ${types.length === 0
+            ? `<div class="nav-empty">Noch keine Checklisten importiert. Lade deine .db-Datei hoch, um loszulegen.</div>`
+            : types.map(t => navGroupHtml(t)).join("")}
+        </nav>
+      </aside>
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+      <div class="main-panel">
+        <div class="main-topbar"><div class="main-topbar-inner">
+          <button class="icon-btn" id="btn-expand" aria-label="Menü öffnen">☰</button>
+          <div class="crumbs">
+            ${currentDoc ? `<div class="lvl1">${esc(currentDoc.aircraftLabel)}</div><div class="lvl2">${esc(currentDoc.name)}</div>` : `<div class="lvl2">Checkliste</div>`}
+          </div>
+        </div></div>
+        <div class="main-content"><div class="main-content-inner" id="main-content-inner">
+          ${!dbReady ? emptyHtml("✈️", "Wird geladen…", "Verbindung zum Speicher wird aufgebaut.")
+            : currentDoc ? detailHtml(currentDoc)
+            : types.length === 0 ? emptyHtml("✈️", "Noch keine Checklisten", "Importiere deine Checklisten-Datenbank (.db) über das Menü oder den Import-Button oben.")
+            : emptyHtml("📋", "Checkliste auswählen", "Wähle links einen Flugzeugtyp und dann eine Checkliste aus.")}
+        </div></div>
+      </div>
+    `;
+    wire();
+    if (importOpen) renderImportSheet(); else {
+      const old = document.getElementById("import-backdrop");
+      if (old) old.remove();
+    }
+  }
+
+  function emptyHtml(icon, title, text) {
+    return `<div class="empty"><div class="plane">${icon}</div><h2>${esc(title)}</h2><p>${esc(text)}</p></div>`;
+  }
+
+  function navGroupHtml(t) {
+    const expanded = expandedAircraft === t.code;
+    const isActiveGroup = checklists.find(c => c.id === currentChecklistId && c.aircraftCode === t.code);
+    return `
+      <div class="nav-group">
+        <button class="nav-aircraft ${expanded ? "expanded" : ""} ${isActiveGroup ? "active-group" : ""}" data-toggle-aircraft="${esc(t.code)}">
+          <span>
+            ${esc(t.label)}
+            <span class="nav-aircraft-meta">${[t.icao, t.items.length + " Checkliste" + (t.items.length === 1 ? "" : "n")].filter(Boolean).join(" · ")}</span>
+          </span>
+          <span class="nav-caret">›</span>
+        </button>
+        <div class="nav-sub" style="display:${expanded ? "block" : "none"}">
+          ${t.items.slice().sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0) || a.name.localeCompare(b.name, "de")).map(c => {
+            const { total, checked } = itemCount(c);
+            const emergency = isEmergencyName(c.name);
+            const active = c.id === currentChecklistId;
+            const color = ["black", "green", "blue", "red"].includes(c.color) ? c.color : "black";
+            return `<button class="nav-checklist color-${color} ${active ? "active" : ""} ${emergency ? "emergency" : ""}" data-select-checklist="${esc(c.id)}">
+              <span>${esc(c.name)}</span>
+              <span class="nc-count">${checked}/${total}</span>
+            </button>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  function detailHtml(doc) {
+    const { total, checked } = itemCount(doc);
+    const pct = total ? Math.round((checked / total) * 100) : 0;
+    const metaBits = [doc.aircraftCode, doc.aircraftIcao, doc.aircraftMaker].filter(Boolean);
+    return `
+      ${metaBits.length ? `<div class="detail-meta">${esc(metaBits.join(" · "))}</div>` : ""}
+      <div class="progress-wrap">
+        <div class="progress-row"><span>${checked} / ${total} erledigt</span><span>${pct}%</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="cl-grid">
+      ${doc.sections.map((sec, si) => `
+        <div class="cl-section">
+          <div class="cl-section-head">${esc(sec.title)}</div>
+          <div class="cl-items">
+            ${sec.items.map((it, ii) => {
+              const key = si + "-" + ii;
+              const isChecked = !!(doc.checkedKeys || {})[key];
+              return `<div class="cl-item ${isChecked ? "checked" : ""}" data-toggle="${si}:${ii}">
+                <div class="cl-check">${isChecked ? "✓" : ""}</div>
+                <div class="cl-row-wrap">
+                  <div class="cl-row-line">
+                    <span class="cl-challenge">${esc(it.challenge)}</span>
+                    <span class="cl-leader"></span>
+                    <span class="cl-response">${esc(it.response)}</span>
+                  </div>
+                </div>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>
+      `).join("")}
+      </div>
+      <div class="detail-actions">
+        <button class="btn" id="btn-reset">Zurücksetzen</button>
+      </div>
+    `;
+  }
+
+  function renderImportSheet() {
+    let backdrop = document.getElementById("import-backdrop");
+    if (backdrop) backdrop.remove();
+    backdrop = document.createElement("div");
+    backdrop.className = "sheet-backdrop";
+    backdrop.id = "import-backdrop";
+    backdrop.innerHTML = `
+      <div class="sheet">
+        <h3>Datenbank importieren</h3>
+        <p>Lade deine SQLite-Datenbankdatei (.db) hoch. Die Datei wird direkt im Browser gelesen – sie wird nicht irgendwohin hochgeladen.</p>
+        <div class="cols">
+          Erwartete Tabellen:<br>
+          <code>aircraft</code> (iata_code, icao_code, bezeichnung, hersteller)<br>
+          <code>checklist</code> (id, aircraft_iata, type, position, color)<br>
+          <code>section</code> (id, checklist_id, name, position)<br>
+          <code>item</code> (id, section_id, challenge, response, position)
+        </div>
+        <label class="file-drop" id="file-drop">
+          <div>🗄️ Datei auswählen (.db)</div>
+          <input type="file" id="file-input" accept=".db,.sqlite,.sqlite3" />
+        </label>
+        <div class="import-status" id="import-status"></div>
+        <div class="sheet-actions">
+          <button class="btn btn-block" id="btn-cancel-import">Abbrechen</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener("click", e => { if (e.target === backdrop) closeImport(); });
+    document.getElementById("btn-cancel-import").addEventListener("click", closeImport);
+    document.getElementById("file-input").addEventListener("change", e => {
+      const f = e.target.files && e.target.files[0];
+      if (f) importSqliteFile(f);
+    });
+  }
+
+  function wire() {
+    document.getElementById("btn-collapse").addEventListener("click", toggleSidebar);
+    document.getElementById("btn-expand").addEventListener("click", toggleSidebar);
+    document.getElementById("btn-import-side").addEventListener("click", openImport);
+    const backdrop = document.getElementById("sidebar-backdrop");
+    if (backdrop) backdrop.addEventListener("click", () => { sidebarCollapsed = true; render(); });
+
+    appEl.querySelectorAll("[data-toggle-aircraft]").forEach(el => {
+      el.addEventListener("click", () => toggleAircraft(el.getAttribute("data-toggle-aircraft")));
+    });
+    appEl.querySelectorAll("[data-select-checklist]").forEach(el => {
+      el.addEventListener("click", () => selectChecklist(el.getAttribute("data-select-checklist")));
+    });
+    appEl.querySelectorAll("[data-toggle]").forEach(el => {
+      el.addEventListener("click", () => {
+        const [si, ii] = el.getAttribute("data-toggle").split(":").map(Number);
+        toggleItem(currentChecklistId, si, ii);
+      });
+    });
+    const resetBtn = document.getElementById("btn-reset");
+    if (resetBtn) resetBtn.addEventListener("click", () => {
+      if (confirm("Fortschritt dieser Checkliste zurücksetzen?")) resetChecklist(currentChecklistId);
+    });
+  }
+
+  render();
+  initDb();
+
+  // Installierbare Offline-Web-App (PWA)
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(err => {
+        console.warn("Service Worker konnte nicht registriert werden:", err);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

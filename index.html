@@ -108,7 +108,7 @@
     transition: width 0.18s ease, transform 0.18s ease;
   }
   .sidebar-head {
-    margin-top: 50px;
+    margin-top: 80px;
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 12px 10px 16px; flex: none;
   }
@@ -180,12 +180,12 @@
 
   /* ---------- Main panel ---------- */
   .main-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100%; position: relative; }
-  .main-content { flex: 1; overflow-y: auto; padding: 50px 18px 56px; }
+  .main-content { flex: 1; overflow-y: auto; padding: 80px 18px 56px; }
   .main-content-inner { max-width: 1100px; margin: 0 auto; }
 
   /* Menu button without a permanent top header. */
   .menu-fab {
-    position: absolute; top: 50px; right: 18px; z-index: 15;
+    position: absolute; top: 80px; right: 18px; z-index: 15;
     width: 46px; height: 46px; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
     border: 1.5px solid var(--ink); border-radius: 4px;
@@ -680,6 +680,12 @@
 
   // ---------- render ----------
   function render() {
+    // Preserve scroll position when the DOM is rebuilt after checking an item.
+    const previousMain = appEl.querySelector(".main-content");
+    const previousSidebar = appEl.querySelector(".sidebar");
+    const mainScrollTop = previousMain ? previousMain.scrollTop : null;
+    const sidebarScrollTop = previousSidebar ? previousSidebar.scrollTop : null;
+
     const types = aircraftTypes();
     const currentDoc = checklists.find(c => c.id === currentChecklistId) || null;
 
@@ -711,6 +717,14 @@
       </div>
     `;
     wire();
+    if (mainScrollTop !== null) {
+      const main = appEl.querySelector(".main-content");
+      if (main) main.scrollTop = mainScrollTop;
+    }
+    if (sidebarScrollTop !== null) {
+      const sidebar = appEl.querySelector(".sidebar");
+      if (sidebar) sidebar.scrollTop = sidebarScrollTop;
+    }
     if (importOpen) renderImportSheet(); else {
       const old = document.getElementById("import-backdrop");
       if (old) old.remove();

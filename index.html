@@ -180,8 +180,8 @@
 
   /* ---------- Main panel ---------- */
   .main-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100%; position: relative; }
-  .main-content { flex: 1; overflow-y: auto; padding: 80px 18px 56px; }
-  .main-content-inner { max-width: 1100px; margin: 0 auto; }
+  .main-content { flex: 1; overflow-y: auto; padding: 80px 0 56px; }
+  .main-content-inner { width: 100%; max-width: none; margin: 0; }
 
   /* Menu button without a permanent top header. */
   .menu-fab {
@@ -220,32 +220,60 @@
   .progress-track { height: 5px; background: var(--paper-2); border: 1px solid var(--line-soft); border-radius: 3px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--ok); transition: width 0.2s ease; }
 
-  .cl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
-  .cl-section { border: 1.5px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--paper-2); }
+  .cl-grid {
+    display:flex; flex-direction:row; flex-wrap:nowrap; gap:18px; align-items:flex-start;
+    overflow-x:auto; overflow-y:visible; width:100%; padding:0 8px 12px;
+    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+  }
+  .cl-section {
+    flex:0 0 clamp(430px, 29vw, 620px); width:clamp(430px, 29vw, 620px); min-width:430px;
+    scroll-snap-align:start; scroll-snap-stop:always; overflow:hidden;
+    border:1px solid var(--line-soft); border-radius:4px; background:var(--paper);
+  }
   .cl-section-head {
     background: var(--header-bg); color: var(--header-fg);
     font-family: 'IBM Plex Sans Condensed', sans-serif; font-weight: 700; font-size: 14px;
     letter-spacing: 0.06em; text-transform: uppercase; padding: 9px 12px;
+    border-bottom:1px solid var(--line);
   }
-  .cl-items { padding: 2px 12px; }
+  .cl-items { padding:0 12px; }
   .cl-item {
-    display: flex; align-items: baseline; gap: 6px; padding: 10px 0;
-    border-bottom: 1px dotted var(--line-soft); cursor: pointer;
+    display:grid; grid-template-columns:20px minmax(0,1fr); gap:8px; padding:9px 0;
+    border-bottom:none; cursor:pointer;
   }
-  .cl-item:last-child { border-bottom: none; }
   .cl-check {
-    flex: none; width: 18px; height: 18px; border: 1.5px solid var(--ink); border-radius: 3px;
-    display: flex; align-items: center; justify-content: center; margin-top: 1px; font-size: 12px;
+    grid-column:1; width:18px; height:18px; border:1.5px solid var(--ink); border-radius:3px;
+    display:flex; align-items:center; justify-content:center; margin-top:1px; font-size:12px;
   }
-  .cl-item.checked .cl-check { background: var(--ok); border-color: var(--ok); color: var(--ok-fg); }
-  .cl-challenge { white-space: nowrap; font-size: 14.5px; }
-  .cl-leader { flex: 1; border-bottom: 1px dotted var(--line-soft); margin-bottom: 4px; min-width: 14px; }
-  .cl-response { font-weight: 700; font-size: 14.5px; white-space: nowrap; text-align: right; }
-  .cl-item.checked .cl-challenge, .cl-item.checked .cl-response { color: var(--ink-dim); text-decoration: line-through; text-decoration-color: var(--ink-dim); }
-  .cl-row-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .cl-row-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: nowrap; }
+  .cl-item.checked .cl-check { background:var(--ok); border-color:var(--ok); color:var(--ok-fg); }
+  .cl-row-wrap { grid-column:2; min-width:0; }
+  .cl-row-line {
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(74px,max-content);
+    align-items:baseline; column-gap:9px; min-width:0;
+  }
+  .cl-left {
+    min-width:0; display:flex; align-items:baseline; width:100%;
+  }
+  .cl-challenge {
+    flex:0 1 auto; min-width:0; white-space:normal; overflow-wrap:anywhere; font-size:14.5px;
+  }
+  .cl-leader {
+    flex:1 1 auto; min-width:18px; margin:0 5px 3px;
+    border-bottom:1px dotted var(--ink-dim); height:0;
+  }
+  .cl-response {
+    min-width:74px; max-width:180px; font-weight:700; font-size:14.5px;
+    white-space:normal; overflow-wrap:anywhere; text-align:right; align-self:center;
+  }
+  .cl-item.checked .cl-challenge, .cl-item.checked .cl-response {
+    color:var(--ink-dim); text-decoration:line-through; text-decoration-color:var(--ink-dim);
+  }
+  @media (max-width:700px) {
+    .cl-section { flex-basis:min(92vw,520px); width:min(92vw,520px); min-width:min(92vw,430px); }
+  }
 
-  .detail-actions { display: flex; gap: 10px; margin-top: 18px; margin-bottom: 24px; }
+  .detail-actions { display: none; }
+  .sidebar-reset-wrap { padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px)); flex: none; }
 
   /* Import panel */
   .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50; display: flex; align-items: flex-end; }
@@ -704,6 +732,9 @@
             ? `<div class="nav-empty">Noch keine Checklisten importiert. Lade deine .db-Datei hoch, um loszulegen.</div>`
             : types.map(t => navGroupHtml(t)).join("")}
         </nav>
+        <div class="sidebar-reset-wrap">
+          <button class="btn btn-block" id="btn-reset-side" ${currentDoc ? "" : "disabled"}>Zurücksetzen</button>
+        </div>
       </aside>
       <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
       <div class="main-panel">
@@ -785,8 +816,10 @@
                 <div class="cl-check">${isChecked ? "✓" : ""}</div>
                 <div class="cl-row-wrap">
                   <div class="cl-row-line">
-                    <span class="cl-challenge">${esc(it.challenge)}</span>
-                    <span class="cl-leader"></span>
+                    <div class="cl-left">
+                      <span class="cl-challenge">${esc(it.challenge)}</span>
+                      <span class="cl-leader"></span>
+                    </div>
                     <span class="cl-response">${esc(it.response)}</span>
                   </div>
                 </div>
@@ -796,9 +829,7 @@
         </div>
       `).join("")}
       </div>
-      <div class="detail-actions">
-        <button class="btn" id="btn-reset">Zurücksetzen</button>
-      </div>
+
     `;
   }
 
@@ -856,7 +887,7 @@
         toggleItem(currentChecklistId, si, ii);
       });
     });
-    const resetBtn = document.getElementById("btn-reset");
+    const resetBtn = document.getElementById("btn-reset-side");
     if (resetBtn) resetBtn.addEventListener("click", () => {
       if (confirm("Fortschritt dieser Checkliste zurücksetzen?")) resetChecklist(currentChecklistId);
     });
